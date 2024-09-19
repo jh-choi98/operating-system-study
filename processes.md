@@ -95,5 +95,3 @@ File descriptors serve as an interface btw OS and programs, allowing efficient m
 
     - offset: 파일에서 읽기나 쓰기가 이뤄질 위치
     - 한쪽으로 파일을 읽거나 쓰면 나머지쪽의 offset도 변경
-
-    Example - redirsh.c:
