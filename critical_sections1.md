@@ -21,7 +21,7 @@
 - Data race의 전형적인 예시로 생산자-소비자 문제(producer-consumer problem)가 있다.
 - 생산자-소비자 문제에서 생산자 프로세스와 소비자 프로세스는 서로 독립적으로 작업을 한다. 가운데에는 buf라는 큐 자료구조가 존재하며 sum은 buf 안의 원소 수를 나타낸다. producer는 buf에 원소를 맨 뒤부터 차근차근 넣고 consumer는 맨 앞에서부터 원소를 빼낸다.
 
-  ```
+  ```c
       producer() {
           input(buf);
           sum += 1;
@@ -57,7 +57,7 @@ Data race 문제를 해결하는 방법은 Lock을 사용하는 것이다. 즉, 
 
 ### 예제 코드
 
-```
+```c
 #include <stdbool.h>
 extern bool lock = false;
 extern int balance;
@@ -97,7 +97,7 @@ int main() {
 
 이전에는 lock을 두 프로세스가 공유하였기 때문에 문제였다. 그러면 각 프로세스가 자신들만의 lock을 가지고 있도록 lock을 두 개를 두자.
 
-```
+```c
 #include <stdbool.h>
 extern bool lock1 = false;
 extern bool lock2 = false;
@@ -131,7 +131,7 @@ int p2() {
 
 ### 진행의 융통성 문제
 
-```
+```c
 int lock = 1;
 extern int balance;
 
