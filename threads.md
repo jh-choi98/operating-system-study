@@ -63,25 +63,30 @@ int main(int argc, char *argv[]) {
     pthread_t tid; // the thread identifier
     pthread_attr_t attr; // set of thread attributes
 
+    /* Input Validation */
     if (argc != 2) {
         fprintf(stderr, "usage: a.out <integer value>\n");
         return -1;
     }
+
     if (atoi(argv[1]) < 0) {
         fprintf(stderr, "%d must be >= 0 \n", atoi(argv[1]));
         return -1;
     }
 
-    // get the default attributes
+    /* Thread Creation */
+    // Initialize thread attributes
     pthread_attr_init(&attr);
 
     // create the thread
     // 이때, argv[1]로 전달된 인자가 runner 함수의 매개변수로 전달
     pthread_create(&tid, &attr, runner, argv[1]);
 
+    /* Thread Synchronization */
     // wait for the thread to exit
     pthread_join(tid, NULL);
 
+    /* Output Result */
     printf("sum = %d\n", sum);
 }
 
@@ -132,3 +137,15 @@ int main(int argc, char *argv[]) {
   - 스레드 관리
     - 첫 번째: 스레드 관리를 위해 pthread_create와 pthread_join을 사용하여, 스레드를 생성하고 종료를 기다리는 메커니즘을 포함.
     - 두 번째: 스레드 사용x
+
+### Custom Operating System (COS)
+
+- Threads vs Procedures
+
+  - Threads는 순차적으로 실행되지 않음: 언제든지 생힝이 중단되거나 재개될 수 있다. 그래서 procedure 호출에서 사옹되는 LIFO 스택 구조 사용 불가. 따라서, 각 thread마다 고유 스택을 가지고 있어야한다.
+  - Threads는 더 적은 빈도로 전환됨: 그래서 Threads간 레지스터를 분할할 필요 없음. Threads 전환이 있을 때만 모든 레지스터 상태를 저장하고 복원하는 작업이 필요
+  - Threads는 비동기적으로 중단될 수 있다: 이때, 중단된 Threads의 모든 레지스터 상태가 저장되어야 한다.
+  - Threads는 동시에 여러 개가 실행될 수 있음 + Thread Scheduling(어느 Thread를 언제 실행할지, 그리고 어느 CPU에서 실행할지 결정하는 것)
+
+- Custom Operating System
+  - 특정 요구사항이나 목적을 위해 맞춤형으로 개발된 운영 체제. 특정 하드웨어나 소프트웨어에 최적화되어 있다.
