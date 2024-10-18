@@ -87,3 +87,63 @@ A mutex is a synchronization mechanism used to prevent multiple processes or thr
 There is an ambiguity btw semaphore and mutex. We might have come across that a mutex is a binary semaphore. But it is not.
 
 A mutex is a locking mechanism used to synchronize access to a resource. Only one task can acquire the mutex. It means there is ownership associated with a mutex, and only the owner can release the lock.
+
+뮤텍스는 Mutual Exclusion의 줄임말로, 여러 스레드나 프로세스가 공유 자원에 동시에 접근하는 것을 막기 위해 사용되는 동기화 메커니즘이다. 상호 배제를 보장함으로써 임계구역 문제를 해결하는 도구이다.
+
+특징
+
+- 상호 배제 보장: 한 번에 하나의 스레드만 임계구역에 들어갈 수 있도록 보장
+- 잠금과 해제: 뮤텍스는 두 가지 주요 연산을 사용하여 작동
+  - Lock: 스레드가 공유 자원에 접근하기 전에 lock을 걸어 다른 스레드가 그 자원에 접근하지 못하게 한다.
+  - Unlock: 스레드가 임계구역에서의 작업을 마치면 unlock을 호출하여 다른 대기중인 스레드가 해당 자원에 접근할 수 있도록 한다.
+- 소유권: 뮤텍스는 소유권의 개념을 가지고 있다. 즉, 특정 스레드가 뮤텍스를 잠그면 그 스레드만이 잠금을 해제할 수 있다. 이는 세마포어와의 주요 차이점 중 하나. 세마포어는 소유권 개념에 없어, 잠금과 해제가 다른 스레드에 의해 실행될 수 있다.
+- Busy Waiting 방지: 뮤텍스를 사용할 때, busy waiting(자원을 계속 점검하며 대기하는 상태)를 방지할 수 있다. 스레드가 lock을 걸지 못하면 대기 상태로 전환되고, 자원이 해제될 때까지 CPU 자원을 낭비하지 않고 대기한다.
+
+Mutex의 동작 방식
+
+- Lock을 걸 때: 만약 다른 스레드가 이미 임계구역에서 작업 중이라면, 해당 스레드는 잠금을 걸 수 없습니다. 대신, 잠금이 해제될 때까지 대기 상태에 들어갑니다.
+
+- Unlock을 할 때: 임계구역에서 작업을 마친 스레드가 unlock을 호출하면, 대기 중인 다른 스레드가 임계구역에 진입할 수 있게 됩니다.
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+
+pthread_mutex_t mutex; // 뮤텍스 선언
+int shared_resource = 0; // 공유 자원
+
+void* thread_function(void* arg) {
+    pthread_mutex_lock(&mutex); // 임계구역 진입 전에 잠금
+    shared_resource++; // 임계구역: 공유 자원 수정
+    printf("Shared Resource: %d\n", shared_resource);
+    pthread_mutex_unlock(&mutex); // 임계구역 나갈 때 잠금 해제
+    return NULL;
+}
+
+int main() {
+    pthread_t thread1, thread2;
+
+    // 뮤텍스 초기화
+    pthread_mutex_init(&mutex, NULL);
+
+    // 두 개의 스레드 생성
+    pthread_create(&thread1, NULL, thread_function, NULL);
+    pthread_create(&thread2, NULL, thread_function, NULL);
+
+    // 스레드 종료 대기
+    // pthread_join: 특정 스레드가 종료될 때까지 대기.
+    //               스레드가 종료되면 그 결과를 가져오는 방식
+    // 즉, 여기서는 thread1과 thread2가 완전히 종료될 때까지 메인 스레드가
+    // 기다리게 하는 역할을 한다.
+    // pthread_join()을 호출하지 않으면, 스레드가 종료되더라도 일부 리소스가
+    // 해제되지 않고 남아있을 수 있다. 따라서 리소스 누수를 방지하기 위해 스레드가
+    // 끝난 후 반드시 호출해야 한다.
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+
+    // 뮤텍스 소멸
+    pthread_mutex_destroy(&mutex);
+
+    return 0;
+}
+```
