@@ -147,3 +147,103 @@ int main() {
     return 0;
 }
 ```
+
+## Condition Variables
+
+조건 변수는 스레드들이 공유 자원에 접근할 때 발생하는 동시성 문제를 해결하기 위해 사용된다. 여러 스레드가 하나의 자원을 공유할 때, 스레드가 특정 조건을 충족할 때까지 대기하게 하고, 다른 스레드가 그 조건을 충족시키면 대기 중인 스레드를 깨워서 실행하도록 만든다.
+
+### 뮤텍스와 조건 변수의 차이
+
+- 뮤텍스: 상호 배제를 보장하며, 공유 자원에 접근하는 동안 다른 스레드가 그 자원에 접근하지 못하게 하는 잠금 메커니즘이다.
+- 조건 변수: 특정 조건이 만족될 때까지 스레드를 대기 상태로 만들고, 조건이 만족되면 그 스레드를 깨우는 방식으로 동기화를 관리한다. 뮤텍스와 함께 사용되며, 상태의 변화를 기다리는데 중점을 둔다.
+
+### 동작 과정
+
+1. 뮤텍스 잠금: 스레드가 임계 구역(critical section)에 진입하기 전에, 뮤텍스를 사용해 자원을 잠근다.
+2. 조건 확인: 스레드는 조건 변수를 사용해 특정 조건을 확인한다. 예를 들어, 소비자가 생산자가 데이터를 준비할 때까지 기다리는 상황에서, 소비자는 데이터가 준비되었는지 확인한다. 이때, 데이터가 준비되지 않았다면 조건이 충족되지 않으므로 소비자는 대기해야 한다.
+3. 조건 대기: 스레드가 조건이 충족되지 않았을 때, pthread_cond_wait() 함수를 호출하여 조건이 충족될 때까지 대기 상태로 들어간다. 이때 다른 스레드들이 자원을 사용할 수 있도록 뮤텍스는 자동으로 해제된다.
+4. 조건 만족 신호: 다른 스레드(예: 생산자)가 조건을 충족시킬 때, pthread_cond_signal() 또는 pthread_cond_broadcast()를 호출하여 대기 중인 스레드에게 조건이 충족되었음을 알리는 신호를 보낸다.
+5. 뮤텍스 재잠금 및 작업 재개: 신호를 받은 스레드는 조건이 충족되었으므로 pthread_cond_wait()이 끝나고, 뮤텍스를 다시 잠금으로써 자원에 접근하여 작업을 재개한다. 작업이 완료되면 뮤텍스를 해제하여 다른 스레드들이 자원에 접근할 수 있도록 한다.
+
+### 주요 함수
+
+- int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex): 스레드가 조건을 기다릴 때 사용
+
+  - 뮤텍스 잠금 해제: 대기하는 동안 다른 스레드들이 임계 구역에 진입하여 자원을 사용할 수 있도록 뮤텍스가 자동으로 해제된다.
+  - 대기 상태로 전환: 스레드는 조건이 충족될 때까지 대기 상태로 들어가며, CPU 자원을 소모하지 않고 효율적으로 대기한다.
+  - 조건 충족 후 뮤텍스 재잠금: 다른 스레드가 조건을 충족시켜 pthread_cond_signal() 또는 pthread_cond_broadcast()가 호출되면, 스레드는 다시 뮤텍스를 잠금 상태로 변경한 후 작업을 재개한다.
+
+- int pthread_cond_signal(pthread_cond_t \*cond): 조건이 충족되었을 때, 대기 중인 스레드 중 하나를 깨우기 위해 사용
+
+  - 이 함수는 하나의 대기 중인 스레드만 깨운다.
+  - 스레드가 깨어나면, 다시 뮤텍스를 잠그고 조건을 확인한 후 임계 구역에서 작업을 수행한다.
+  - 조건 변수는 뮤텍스와 함께 사용되어 무텍스에 접근하려고 대기 중인 스레드들 중 하나가 신호를 받기 때문에, 특정 스레드를 인자로 줄 필요가 없다.
+  - 즉, 어떤 스레드가 신호를 받는지는 미리 지정되지 않지만, pthread_cond_wait()을 호출하여 조건 변수에서 대기하고 있는 스레드 중 하나가 신호를 받는 것이다.
+
+- int pthread_cond_broadcast(pthread_cond_t \*cond): 조건이 충족되었을 때, 대기 중인 모든 스레드를 깨우기 위해 사용
+
+### 예시
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+
+// PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
+// 정적 초기화를 위해 제공되는 매크로. 기본값을 지정.
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cont_t cond = PTHREAD_COND_INITIALIZER;
+int buff = 0; // 공유 자원: 버퍼
+int produced = 0; // 생성된 항목의 개수
+
+void *producer(void *arg) {
+    for (int i = 0; i < 5; i++) {
+        pthread_mutex_lock(&mutex); // 뮤텍스 잠금
+        buff += 1; // 공유 자원에 접근
+        printf("Produced: %d\n", buff);
+        produced = 1; // 생산 완료 상태 설정
+        pthread_cond_signal(&cond); // 소비자에게 신호 보내기
+        pthread_mutex_unlock(&mutex); // 뮤텍스 해제
+    }
+    return NULL;
+}
+
+void *consumer(void *arg) {
+    for (int i = 0; i < 5; i++) {
+        pthread_mutex_lock(&mutex); // 뮤텍스 잠금
+        while (produced == 0) { // 생산이 완료되지 않았으면 대기
+            pthread_cond_wait(&cond, &mutex); // 조건이 만족될 때까지 대기
+        }
+        buff -= 1; // 공유 자원에 접근
+        printf("Consumed: %d\n", buff);
+        produced = 0; // 소비 완료 상태 설정
+        pthread_mutex_unlock(&mutex); // 뮤텍스 해제
+    }
+    return NULL;
+}
+
+int main() {
+    // 스레드 ID를 저장할 변수를 선언
+    pthread_t producer_thread, consumer_thread;
+
+    // 새로운 스레드들 생성
+    pthread_create(&producer_thread, NULL, producer, NULL);
+    pthread_create(&consumer_thread, NULL, consumer, NULL);
+
+    // 특정 스레드가 종료될 때까지 현재 스레드가 대기하게 만드는 함수
+    // 스레드가 완전히 종료되기 전까지 리소스 해제를 방지
+    // NULL: 반환 값을 저장하기 않겠다.
+    pthread_join(producer_thread, NULL);
+    pthread_join(consumer_thread, NULL);
+
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&cond);
+}
+
+/*
+1. producer 스레드는 5번 반복하며 공유 자원(buffer)에 값을 추가하고, produced 플래그를 1로 설정하여 생산이 완료되었음을 알립니다. 이후 pthread_cond_signal()을 호출하여 소비자 스레드에게 신호를 보냅니다.
+
+2. consumer 스레드는 produced == 0일 경우 pthread_cond_wait()을 호출하여 생산자가 생산을 완료할 때까지 대기합니다. 신호를 받으면 buffer 값을 감소시키고 자원을 소비한 후 produced 플래그를 0으로 설정합니다.
+
+3. 두 스레드는 뮤텍스를 사용하여 공유 자원을 보호하며, 조건 변수를 통해 상태 변화를 동기화합니다.
+*/
+```
