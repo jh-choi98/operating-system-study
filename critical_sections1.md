@@ -43,6 +43,11 @@
   - 만약 sum -= 1이 먼저 실행되고, sum += 1이 그뒤에 실행되면 sum은 4가 된다. 왜냐하면 코드가 실행될 때의 sum은 3이기 때문이다.
   - 실행 순서에 따라 값이 변한다.
 
+### Memory Consistency Issue
+
+- 여러 스레드 또는 프로세서가 공유 메모리에 동시에 접근할 때 일관성 없는 메모리 값을 읽거나 쓰는 상황 (multiple threads (or processors) access shared memory in parallel without proper synchronization, leading to inconsistent or unexpected values being read or written)
+- 동기화 부족과 최적화된 메모리 접근 방식으로 인해 발생. 성능을 높이기 위해 메모리 접근을 최적화하고, 메모리 일관성 모델을 따른다. 이러한 최적화는 동시성 문제를 일으킬 수 있다.
+
 ### 임계구역 해결 조건
 
 임계구역 문제를 해결할 수 있는 방법은 다음 3가지 조건을 만족해야 한다.
