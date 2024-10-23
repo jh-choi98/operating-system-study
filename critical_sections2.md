@@ -80,6 +80,21 @@ p2: 예금 -= 5만원
 4. 프로세스 P1이 작업을 마치고 V()를 실행하면 RS 값은 1이 되고, wake_up 신호가 프로세스 P3에 전달된다.
 5. 프로세스 P3가 임계구역에 진입한다.
 
+### 주요 함수
+
+- int sem_init(sem_t \*s, int pshared, unsigned int value)
+  - 세마포어를 초기화하는 함수. 세마포어 객체 s를 초기화하며, 세마포어의 초기 값을 value로 설정한다.
+  - s: 초기화할 세마포어 객체의 포인터
+  - pshared: 프로세스 간 공유 여부를 결정합니다. 0으로 설정하면, 세마포어는 스레드 간에만 공유되고, 0이 아니면 프로세스 간에도 공유할 수 있다.
+  - value: 세마포어의 초기 값
+  - 성공 시 0을 반환하고, 실패 시 -1을 반환
+- sem_wait(sem_t \*s)
+  - 세마포어를 잠그는 함수. 세마포어가 0보다 크면 값을 1 감소시키고 자원을 사용한다. 세마포어가 0이면 자원이 모두 사용 중인 상태이므로 대기 상태로 전환
+  - s: 잠글 세마포어의 포인터
+  - 이 함수는 자원이 사용 가능할 때까지 스레드를 대기 상태로 만들며, 자원이 해제되면 스레드를 깨워 실행을 계속할 수 있게 한다.
+- sem_post(sem_t \*s)
+  - 세마포어를 해제하는 함수. 자원이 사용 중인 상태를 끝내고, 세마포어의 값을 1 증가시켜 자원을 사용할 수 있음을 나타낸다. 대기 중인 스레드가 있으면, 이를 깨워 자원에 접근하게 한다.
+
 ## Mutex
 
 A mutex is a synchronization mechanism used to prevent multiple processes or threads from accessing a shared resource (like memory, files, or variables) at the same time. By allowing only one process or thread to use the resource at a given moment, it prevents race conditions and ensures the consistency of the resource.
